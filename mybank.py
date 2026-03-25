@@ -5,7 +5,7 @@ from datetime import datetime
 
 # --- การตั้งค่าเบื้องต้น ---
 FILE_NAME = 'bank_database.csv'
-USER_PASSWORD = "1234"  # คุณสามารถเปลี่ยนรหัสผ่านตรงนี้ได้
+USER_PASSWORD = "250346"  # คุณสามารถเปลี่ยนรหัสผ่านตรงนี้ได้
 
 def load_data():
     if os.path.exists(FILE_NAME):
