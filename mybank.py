@@ -8,7 +8,7 @@ import yfinance as yf
 # --- 1. การตั้งค่าพื้นฐานและธีม ---
 st.set_page_config(page_title="Suppawit Portfolio Pro", layout="wide")
 FILE_NAME = 'bank_database.csv'
-USER_PASSWORD = "your_password" # <--- อย่าลืมเปลี่ยนเป็นรหัสของคุณ
+USER_PASSWORD = "250346" # <--- อย่าลืมเปลี่ยนเป็นรหัสของคุณ
 
 # CSS สำหรับปรับแต่งธีม (น้ำเงิน-ดำ-เงิน)
 st.markdown("""
