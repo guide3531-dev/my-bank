@@ -5,68 +5,82 @@ from datetime import datetime, timedelta, timezone
 import plotly.express as px
 import numpy as np
 
-# --- 1. การตั้งค่าพื้นฐานและธีม (ปรับปรุงเพื่อการอ่านง่าย) ---
+# --- 1. การตั้งค่าพื้นฐานและธีมเน้นความชัดเจน ---
 st.set_page_config(page_title="Suppawit Bank PRO", layout="wide")
 FILE_NAME = 'bank_database.csv'
-USER_PASSWORD = "250346"  # <--- อย่าลืมเปลี่ยนรหัสของคุณ
+USER_PASSWORD = "250346"  # <--- เปลี่ยนรหัสผ่านของคุณตรงนี้
 
-# CSS ปรับแต่งให้ตัวหนังสือชัดเจนที่สุดบนมือถือ
+# CSS ปรับแต่งเพื่อให้ตัวหนังสือขาวชัดเจนที่สุด
 st.markdown("""
     <style>
-    /* พื้นหลังดำเข้ม ตัวหนังสือขาวบริสุทธิ์ */
+    /* พื้นหลังดำสนิท */
     .stApp { 
-        background-color: #05070A; 
-        color: #FFFFFF !important; 
+        background-color: #000000; 
     }
     
-    /* ปรับหัวข้อให้ขาวชัด */
-    h1, h2, h3, p, span, label { 
-        color: #FFFFFF !important; 
-        font-weight: 500 !important;
+    /* บังคับตัวหนังสือทุกส่วนเป็นสีขาวสด */
+    html, body, [data-testid="stWidgetLabel"], .stText, p, h1, h2, h3, h4, h5, h6, span, label {
+        color: #FFFFFF !important;
+        font-size: 1.05rem !important;
     }
 
-    /* กล่อง Metric (ยอดเงิน) ให้เด่นขึ้น */
+    /* กล่องยอดเงิน (Metric) เน้นขอบน้ำเงินและตัวเลขขนาดใหญ่ */
     div[data-testid="stMetric"] {
-        background-color: #111827;
-        border: 1px solid #3B82F6;
-        border-radius: 12px;
-        padding: 20px;
+        background-color: #0A1120;
+        border: 2px solid #3B82F6;
+        border-radius: 15px;
+        padding: 25px;
+        text-align: center;
     }
     div[data-testid="stMetricValue"] > div {
-        color: #3B82F6 !important;
-        font-size: 2rem !important;
-        font-weight: 700 !important;
-    }
-
-    /* ปรับแต่งช่องกรอกข้อมูลให้อ่านง่าย */
-    .stTextInput input, .stNumberInput input, .stSelectbox div {
-        background-color: #1F2937 !important;
         color: #FFFFFF !important;
-        border: 1px solid #4B5563 !important;
+        font-size: 2.5rem !important;
+        font-weight: 800 !important;
+    }
+    div[data-testid="stMetricLabel"] > div {
+        color: #3B82F6 !important;
+        font-size: 1.2rem !important;
+        text-transform: uppercase;
     }
 
-    /* ปุ่มกดสีน้ำเงินสว่าง */
+    /* ปรับแต่งช่อง Input ให้มีขอบชัดเจน */
+    .stTextInput input, .stNumberInput input, .stSelectbox div {
+        background-color: #111827 !important;
+        color: #FFFFFF !important;
+        border: 2px solid #3B82F6 !important;
+        font-size: 1.1rem !important;
+        height: 45px;
+    }
+
+    /* ปุ่มกดสีน้ำเงิน Royal Blue */
     .stButton>button {
         width: 100%;
-        background-color: #2563EB !important;
-        color: white !important;
-        border-radius: 10px;
-        padding: 12px;
+        background-color: #3B82F6 !important;
+        color: #FFFFFF !important;
+        border-radius: 12px;
+        padding: 15px;
+        font-size: 1.2rem !important;
         font-weight: bold;
         border: none;
+        box-shadow: 0px 4px 10px rgba(59, 130, 246, 0.4);
     }
 
-    /* แถบ Tab ด้านบน */
-    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
+    /* แถบ Tab ขยายตัวอักษรให้ใหญ่ */
+    .stTabs [data-baseweb="tab-list"] { gap: 12px; }
     .stTabs [data-baseweb="tab"] {
         background-color: #111827;
-        color: #9CA3AF !important;
-        border-radius: 8px 8px 0 0;
-        padding: 10px 15px;
+        color: #FFFFFF !important;
+        border-radius: 10px 10px 0 0;
+        padding: 12px 25px;
+        font-size: 1.1rem !important;
     }
     .stTabs [aria-selected="true"] {
+        background-color: #3B82F6 !important;
+    }
+
+    /* ตารางข้อมูล (Dataframe) */
+    .styled-table {
         color: #FFFFFF !important;
-        border-bottom: 2px solid #3B82F6 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -93,44 +107,47 @@ if 'auth_active' not in st.session_state:
     st.session_state.auth_active = False
 
 if not st.session_state.auth_active:
-    st.title("🏦 Suppawit Bank")
-    st.markdown("### 🔒 กรุณาใส่รหัสผ่าน")
-    pwd_input = st.text_input("รหัสผ่านของคุณ", type="password")
-    if st.button("เข้าสู่ระบบ"):
-        if pwd_input == USER_PASSWORD:
-            st.session_state.auth_active = True
-            st.rerun()
-        else:
-            st.error("รหัสผ่านไม่ถูกต้อง")
+    st.markdown("<h1 style='text-align: center; color: white;'>🏦 SUPPAWIT BANK</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #3B82F6;'>Please Enter Security Password</p>", unsafe_allow_html=True)
+    
+    # สร้างกล่อง Login ตรงกลาง
+    _, col_login, _ = st.columns([1, 2, 1])
+    with col_login:
+        pwd_input = st.text_input("PASSWORD", type="password", label_visibility="collapsed")
+        if st.button("LOGIN"):
+            if pwd_input == USER_PASSWORD:
+                st.session_state.auth_active = True
+                st.rerun()
+            else:
+                st.error("Invalid Password")
     st.stop()
 
 # --- 4. หน้าหลักแอป ---
 data = load_data()
 current_balance = data.iloc[0]['Balance'] if not data.empty else 0.0
 
-st.title("💎 Suppawit Bank PRO")
-st.sidebar.button("🔒 ล็อกแอป", on_click=lambda: st.session_state.update({"auth_active": False}))
+st.markdown("<h1 style='color: white;'>💎 Suppawit Bank PRO</h1>", unsafe_allow_html=True)
 
-# แสดง Dashboard ยอดเงิน
+# Dashboard ยอดเงินแบบชัดเจน
 col_m1, col_m2 = st.columns(2)
 with col_m1:
-    st.metric("ยอดเงินในบัญชี", f"{current_balance:,.2f} THB")
+    st.metric("TOTAL BALANCE", f"{current_balance:,.2f} THB")
 with col_m2:
     dca_total = data[data['Category'] == 'DCA หุ้น']['Amount'].abs().sum() if not data.empty else 0
-    st.metric("เงินลงทุน DCA", f"{dca_total:,.2f} THB")
+    st.metric("TOTAL DCA", f"{dca_total:,.2f} THB")
 
-tab1, tab2, tab3 = st.tabs(["💰 ฝาก-ถอน", "📈 กราฟ/ประวัติ", "🧮 คำนวณ DCA"])
+tab1, tab2, tab3 = st.tabs(["💰 TRANSACTIONS", "📈 HISTORY & GRAPH", "🧮 DCA CALCULATOR"])
 
 # --- Tab 1: การจัดการเงิน ---
 with tab1:
     with st.form("main_form", clear_on_submit=True):
-        st.markdown("#### บันทึกรายการใหม่")
-        t_type = st.radio("ประเภท", ["ฝากเงิน", "ถอนเงิน/รายจ่าย"])
+        st.markdown("<h3 style='color: #3B82F6;'>➕ บันทึกรายการใหม่</h3>", unsafe_allow_html=True)
+        t_type = st.radio("ประเภทรายการ", ["ฝากเงิน", "ถอนเงิน/รายจ่าย"])
         t_cat = st.selectbox("หมวดหมู่", ["เงินเดือน", "DCA หุ้น", "ค่ากิน", "โอนเข้า", "อื่นๆ"])
-        t_amt = st.number_input("จำนวนเงิน (บาท)", min_value=0.0)
-        t_note = st.text_input("บันทึกเพิ่มเติม")
+        t_amt = st.number_input("จำนวนเงิน (THB)", min_value=0.0)
+        t_note = st.text_input("บันทึกเพิ่มเติม (Note)")
         
-        if st.form_submit_button("ยืนยันการบันทึก"):
+        if st.form_submit_button("SAVE TRANSACTION"):
             final_amt = t_amt if t_type == "ฝากเงิน" else -t_amt
             new_balance = current_balance + final_amt
             now_thai = get_thai_time()
@@ -141,42 +158,48 @@ with tab1:
             }])
             data = pd.concat([new_record, data], ignore_index=True)
             save_data(data)
-            st.success("บันทึกสำเร็จ!")
+            st.success("บันทึกเรียบร้อย!")
             st.rerun()
 
 # --- Tab 2: กราฟและประวัติ ---
 with tab2:
     if not data.empty:
-        st.subheader("📊 แนวโน้มยอดเงิน")
+        st.markdown("<h3 style='color: #3B82F6;'>📊 Growth Graph</h3>", unsafe_allow_html=True)
+        # ปรับเส้นกราฟให้หนาและชัด
         fig_line = px.line(data.sort_values('Timestamp'), x='Timestamp', y='Balance', 
-                           markers=True, template="plotly_dark", color_discrete_sequence=['#3B82F6'])
+                           markers=True, template="plotly_dark")
+        fig_line.update_traces(line=dict(width=4, color='#3B82F6'), marker=dict(size=10))
         st.plotly_chart(fig_line, use_container_width=True)
         
-        st.subheader("📜 ประวัติล่าสุด")
-        st.dataframe(data, use_container_width=True)
+        st.markdown("<h3 style='color: #3B82F6;'>📜 History</h3>", unsafe_allow_html=True)
+        st.dataframe(data.style.format(subset=['Amount', 'Balance'], formatter="{:,.2f}"), use_container_width=True)
         
-        if st.button("❌ ลบรายการล่าสุด"):
+        if st.button("❌ DELETE LAST RECORD"):
             data = data.drop(data.index[0]); save_data(data); st.rerun()
     else:
-        st.info("ยังไม่มีข้อมูลในระบบ")
+        st.info("No Data Available")
 
 # --- Tab 3: DCA Calculator ---
 with tab3:
-    st.subheader("🧮 คำนวณความรวยในอนาคต")
-    monthly_invest = st.number_input("ออมต่อเดือน", value=5000)
-    yearly_return = st.number_input("กำไรต่อปี (%)", value=8.0)
-    years = st.number_input("จำนวนปีที่ออม", value=10)
+    st.markdown("<h3 style='color: #3B82F6;'>🧮 DCA Future Predictor</h3>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    with c1:
+        monthly_invest = st.number_input("ออมต่อเดือน (บาท)", value=5000)
+        years = st.number_input("ระยะเวลา (ปี)", value=10)
+    with c2:
+        yearly_return = st.number_input("กำไรเฉลี่ยต่อปี (%)", value=8.0)
     
-    months = years * 12
+    months = int(years * 12)
     rate = (yearly_return / 100) / 12
     future_v = monthly_invest * (((1 + rate)**months - 1) / rate) * (1 + rate)
     
     st.markdown(f"""
-    <div style='background-color: #111827; padding: 20px; border-radius: 10px; border: 1px dashed #3B82F6;'>
-        <h2 style='color: white; margin: 0;'>เงินรวม: {future_v:,.2f} บาท</h2>
-        <p style='color: #9CA3AF;'>จากเงินต้นทั้งหมด: {(monthly_invest*months):,.2f} บาท</p>
+    <div style='background-color: #0A1120; padding: 30px; border-radius: 15px; border: 2px solid #3B82F6; margin-top: 20px;'>
+        <h1 style='color: white; text-align: center; margin: 0;'>ESTIMATED: {future_v:,.2f} THB</h1>
+        <p style='color: #3B82F6; text-align: center;'>Based on {years} years of saving</p>
     </div>
     """, unsafe_allow_html=True)
-    
-    growth = [monthly_invest * (((1 + rate)**m - 1) / rate) for m in range(1, months + 1)]
-    st.line_chart(growth)
+
+if st.sidebar.button("🔒 LOGOUT"):
+    st.session_state.auth_active = False
+    st.rerun()
