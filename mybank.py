@@ -1,25 +1,31 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone # เพิ่ม timedelta และ timezone
 import plotly.express as px
 
 # --- ตั้งค่าพื้นฐาน ---
 FILE_NAME = 'bank_database.csv'
-USER_PASSWORD = "250346"  # <--- เปลี่ยนรหัสผ่านของคุณตรงนี้
+USER_PASSWORD = "250346"  # <--- อย่าลืมเปลี่ยนเป็นรหัสของคุณ
 
-# --- ฟังก์ชันจัดการข้อมูล (เพื่อให้ข้อมูลไม่หาย) ---
+# --- ฟังก์ชันตั้งค่าเวลาประเทศไทย (GMT+7) ---
+def get_thai_time():
+    # สร้าง timezone ของไทย (UTC+7)
+    tz_thai = timezone(timedelta(hours=7))
+    return datetime.now(tz_thai)
+
+# --- ฟังก์ชันจัดการข้อมูล ---
 def load_data():
     if os.path.exists(FILE_NAME):
         df = pd.read_csv(FILE_NAME)
-        # แปลง Timestamp เป็นรูปแบบเวลาเพื่อให้กราฟเรียงลำดับถูกต้อง
+        # เปลี่ยนวิธีโหลดเวลาเพื่อให้รองรับ format ที่หลากหลาย
         df['Timestamp'] = pd.to_datetime(df['Timestamp'], dayfirst=True)
         return df
     return pd.DataFrame(columns=['Timestamp', 'Type', 'Category', 'Detail', 'Amount', 'Balance'])
 
 def save_data(df):
     df_to_save = df.copy()
-    # แปลงเวลากลับเป็นตัวหนังสือเพื่อบันทึกลง CSV
+    # เซฟเวลาลง CSV ในรูปแบบที่อ่านง่าย (วัน/เดือน/ปี ชั่วโมง:นาที)
     df_to_save['Timestamp'] = df_to_save['Timestamp'].dt.strftime("%d/%m/%Y %H:%M")
     df_to_save.to_csv(FILE_NAME, index=False)
 
@@ -29,7 +35,6 @@ if 'auth_active' not in st.session_state:
 
 if not st.session_state.auth_active:
     st.title("🏦 Suppawit Private Bank")
-    st.write("🔒 กรุณาใส่รหัสผ่านเพื่อเข้าใช้งาน")
     pwd_input = st.text_input("รหัสผ่าน", type="password")
     if st.button("ตกลง"):
         if pwd_input == USER_PASSWORD:
@@ -39,20 +44,15 @@ if not st.session_state.auth_active:
             st.error("รหัสผ่านไม่ถูกต้อง")
     st.stop()
 
-# --- เริ่มต้นหน้าแอปหลัก ---
-st.set_page_config(page_title="My Digital Bank", layout="wide")
+# --- หน้าหลักแอป ---
+st.set_page_config(page_title="My Bank Thailand Time", layout="wide")
 data = load_data()
-
-# คำนวณยอดเงินล่าสุด
 current_balance = data.iloc[0]['Balance'] if not data.empty else 0.0
 
 st.title("🏦 Suppawit Private Bank")
-st.sidebar.button("🔒 ล็อกแอป", on_click=lambda: st.session_state.update({"auth_active": False}))
-
-# แสดงยอดเงินปัจจุบันแบบเด่นๆ
 st.metric(label="ยอดเงินคงเหลือปัจจุบัน", value=f"{current_balance:,.2f} THB")
 
-tab1, tab2 = st.tabs(["💰 ทำรายการ ฝาก-ถอน", "📈 กราฟและประวัติ"])
+tab1, tab2 = st.tabs(["💰 ทำรายการ", "📈 กราฟและประวัติ"])
 
 with tab1:
     with st.form("transaction_form", clear_on_submit=True):
@@ -61,55 +61,45 @@ with tab1:
             t_type = st.radio("ประเภทรายการ", ["ฝากเงิน", "ถอนเงิน/รายจ่าย"])
             t_cat = st.selectbox("หมวดหมู่", ["เงินเดือน", "DCA หุ้น", "ค่ากิน", "เงินโอน", "อื่นๆ"])
         with col2:
-            t_amt = st.number_input("จำนวนเงิน (บาท)", min_value=0.0, step=100.0)
-            t_note = st.text_input("บันทึกเพิ่มเติม")
+            t_amt = st.number_input("จำนวนเงิน (บาท)", min_value=0.0)
+            t_note = st.text_input("บันทึก")
         
-        if st.form_submit_button("ยืนยันบันทึกรายการ"):
+        if st.form_submit_button("บันทึกรายการ"):
             final_amt = t_amt if t_type == "ฝากเงิน" else -t_amt
             new_balance = current_balance + final_amt
             
-            # สร้างข้อมูลใหม่
+            # ใช้ฟังก์ชัน get_thai_time() ที่เราสร้างไว้ข้างบน
+            now_thai = get_thai_time()
+            
             new_record = pd.DataFrame([{
-                'Timestamp': datetime.now(),
-                'Type': t_type, 
-                'Category': t_cat, 
-                'Detail': t_note,
-                'Amount': final_amt, 
-                'Balance': new_balance
+                'Timestamp': now_thai.replace(tzinfo=None), # ลบข้อมูลเขตเวลาออกเพื่อให้บันทึกง่าย
+                'Type': t_type, 'Category': t_cat, 'Detail': t_note,
+                'Amount': final_amt, 'Balance': new_balance
             }])
             
-            # เอาข้อมูลใหม่วางบนสุด (Concat)
             data = pd.concat([new_record, data], ignore_index=True)
             save_data(data)
-            st.success(f"บันทึก {t_type} เรียบร้อยแล้ว!")
+            st.success(f"บันทึกสำเร็จเมื่อเวลา {now_thai.strftime('%H:%M')} น.")
             st.rerun()
 
 with tab2:
-    # --- ส่วนแสดงกราฟ ---
-    st.subheader("📈 แนวโน้มยอดเงิน (กราฟ)")
+    st.subheader("📈 กราฟแสดงแนวโน้มเงิน (เวลาไทย)")
     if not data.empty:
-        # เรียงข้อมูลตามเวลาจากเก่าไปใหม่เพื่อวาดกราฟ
         chart_df = data.sort_values('Timestamp')
-        fig = px.line(chart_df, x='Timestamp', y='Balance', markers=True, 
-                      labels={'Balance': 'ยอดเงินคงเหลือ', 'Timestamp': 'วันที่/เวลา'},
-                      title="เส้นทางการเติบโตของเงิน")
+        fig = px.line(chart_df, x='Timestamp', y='Balance', markers=True,
+                      labels={'Balance': 'เงินคงเหลือ', 'Timestamp': 'วันที่/เวลา'})
         st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("ยังไม่มีข้อมูลสำหรับวาดกราฟ")
-
+    
     st.divider()
-
-    # --- ส่วนตารางประวัติ ---
-    st.subheader("📜 สมุดบัญชีย้อนหลัง")
+    st.subheader("📜 ประวัติรายการ")
     st.dataframe(data, use_container_width=True)
-
-    # --- ส่วนปุ่มลบข้อมูล ---
-    st.write("---")
-    if st.button("❌ ลบรายการล่าสุด (แก้ไขกรณีพิมพ์ผิด)"):
+    
+    if st.button("❌ ลบรายการล่าสุด"):
         if not data.empty:
             data = data.drop(data.index[0])
             save_data(data)
-            st.warning("ลบรายการล่าสุดออกแล้ว ยอดเงินถูกรีเซ็ตกลับไปก่อนหน้า")
             st.rerun()
-        else:
-            st.error("ไม่มีข้อมูลเหลือให้ลบ")
+
+if st.sidebar.button("🔒 ล็อกแอป"):
+    st.session_state.auth_active = False
+    st.rerun()
