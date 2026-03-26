@@ -8,7 +8,7 @@ import numpy as np
 # --- 1. การตั้งค่าพื้นฐานและธีม ---
 st.set_page_config(page_title="Suppawit Private Bank PRO", layout="wide")
 FILE_NAME = 'bank_database.csv'
-USER_PASSWORD = "250346  # <--- เปลี่ยนรหัสผ่านของคุณตรงนี้
+USER_PASSWORD = "250346"# <--- เปลี่ยนรหัสผ่านของคุณตรงนี้
 
 # CSS สำหรับปรับแต่งธีม (น้ำเงิน-ดำ-เงิน)
 st.markdown("""
