@@ -6,7 +6,7 @@ import plotly.express as px
 
 # --- ตั้งค่าเบื้องต้น ---
 FILE_NAME = 'bank_database.csv'
-USER_PASSWORD = "your_password" # ใส่รหัสเดิมของคุณตรงนี้
+USER_PASSWORD = "250346" # ใส่รหัสเดิมของคุณตรงนี้
 
 # ฟังก์ชันจัดการความจำการ Login
 if 'auth_success' not in st.session_state:
